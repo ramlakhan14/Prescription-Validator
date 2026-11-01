@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prescription Validator</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, sans-serif;
+      background: #f4f6fa;
+      color: #172033;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+
+    .eyes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #dce2eb;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+
+    input:focus {
+      outline: 2px solid #93c5fd;
+      border-color: #2563eb;
+    }
+
+    .hint {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    button {
+      padding: 11px 16px;
+      border: 0;
+      border-radius: 7px;
+      background: #2563eb;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e2e8f0;
+      color: #172033;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .toggle input {
+      width: auto;
+    }
+
+    #summary {
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      background: #e2e8f0;
+    }
+
+    #summary.valid {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    #summary.invalid {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    #results {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result {
+      background: white;
+      border: 1px solid #dce2eb;
+      border-left: 4px solid #16a34a;
+      border-radius: 7px;
+      padding: 12px;
+    }
+
+    .result.error {
+      border-left-color: #dc2626;
+    }
+
+    .result strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .message {
+      font-size: 14px;
+      color: #475569;
+    }
+
+    @media (max-width: 600px) {
+      .eyes {
+        grid-template-columns: 1fr;
+      }
+
+      body {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Prescription Validator</h1>
+    <p class="subtitle">
+      Validate SPH, CYL and axis values for both eyes.
+    </p>
+
+    <form id="prescriptionForm" novalidate>
+      <div class="eyes">
+        <section class="card">
+          <h2>Right Eye (OD)</h2>
+
+          <label for="rightSph">SPH (D)</label>
+          <input id="rightSph" type="number" step="0.25"
+                 placeholder="-2.00" />
+
+          <span class="hint">Range: -20.00 to +20.00</span>
+
+          <label for="rightCyl">CYL (D)</label>
+          <input id="rightCyl" type="number" step="0.25"
+                 placeholder="-1.25" />
+
+          <span class="hint">Range: -6.00 to +6.00</span>
+
+          <label for="rightAxis">Axis (degrees)</label>
+          <input id="rightAxis" type="number" step="1"
+                 placeholder="90" />
+
+          <span class="hint">Integer from 0 to 180</span>
+        </section>
+
+        <section class="card">
+          <h2>Left Eye (OS)</h2>
+
+          <label for="leftSph">SPH (D)</label>
+          <input id="leftSph" type="number" step="0.25"
+                 placeholder="-1.50" />
+
+          <span class="hint">Range: -20.00 to +20.00</span>
+
+          <label for="leftCyl">CYL (D)</label>
+          <input id="leftCyl" type="number" step="0.25"
+                 placeholder="-0.75" />
+
+          <span class="hint">Range: -6.00 to +6.00</span>
+
+          <label for="leftAxis">Axis (degrees)</label>
+          <input id="leftAxis" type="number" step="1"
+                 placeholder="180" />
+
+          <span class="hint">Integer from 0 to 180</span>
+        </section>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Validate Prescription</button>
+        <button type="button" class="secondary"
+                id="badExample">Load Invalid Example</button>
+        <button type="button" class="secondary"
+                id="reset">Reset</button>
+      </div>
+    </form>
+
+    <label class="toggle">
+      <input type="checkbox" id="errorsOnly" />
+      Show errors only
+    </label>
+
+    <section aria-live="polite">
+      <div id="summary">Enter values and validate the prescription.</div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("prescriptionForm");
+    const results = document.getElementById("results");
+    const summary = document.getElementById("summary");
+    const errorsOnly = document.getElementById("errorsOnly");
+
+    const fields = [
+      { id: "rightSph", eye: "Right eye", name: "SPH",
+        min: -20, max: 20, step: 0.25 },
+      { id: "rightCyl", eye: "Right eye", name: "CYL",
+        min: -6, max: 6, step: 0.25 },
+      { id: "rightAxis", eye: "Right eye", name: "Axis",
+        min: 0, max: 180, step: 1 },
+      { id: "leftSph", eye: "Left eye", name: "SPH",
+        min: -20, max: 20, step: 0.25 },
+      { id: "leftCyl", eye: "Left eye", name: "CYL",
+        min: -6, max: 6, step: 0.25 },
+      { id: "leftAxis", eye: "Left eye", name: "Axis",
+        min: 0, max: 180, step: 1 }
+    ];
+
+    function getValue(id) {
+      const raw = document.getElementById(id).value.trim();
+      return raw === "" ? null : Number(raw);
+    }
+
+    function isStepValid(value, step) {
+      const units = value / step;
+      return Math.abs(units - Math.round(units)) < 1e-8;
+    }
+
+    function validateField(field) {
+      const value = getValue(field.id);
+      const label = `${field.eye} ${field.name}`;
+
+      if (value === null) {
+        return {
+          label,
+          valid: false,
+          message: "Value is required."
+        };
+      }
+
+      if (!Number.isFinite(value)) {
+        return {
+          label,
+          valid: false,
+          message: "Enter a valid number."
+        };
+      }
+
+      if (value < field.min || value > field.max) {
+        return {
+          label,
+          valid: false,
+          message:
+            `Value ${value} is out of range. Allowed: ` +
+            `${field.min} to ${field.max}.`
+        };
+      }
+
+      if (!isStepValid(value, field.step)) {
+        return {
+          label,
+          valid: false,
+          message:
+            `Value must use increments of ${field.step}.`
+        };
+      }
+
+      return {
+        label,
+        valid: true,
+        message: "Value is within the allowed range."
+      };
+    }
+
+    function validatePrescription() {
+      const checks = fields.map(validateField);
+
+      // Axis is required only when cylinder power is non-zero.
+      ["right", "left"].forEach(side => {
+        const cyl = getValue(side + "Cyl");
+        const axisInput = document.getElementById(side + "Axis");
+
+        if (cyl !== null && Number.isFinite(cyl) &&
+            cyl !== 0 && axisInput.value.trim() === "") {
+          const axisCheck = checks.find(
+            item => item.label ===
+              (side === "right" ? "Right eye Axis" : "Left eye Axis")
+          );
+
+          axisCheck.valid = false;
+          axisCheck.message =
+            "Axis is required when CYL is non-zero.";
+        }
+      });
+
+      const errors = checks.filter(item => !item.valid);
+
+      summary.className = errors.length === 0 ? "valid" : "invalid";
+      summary.textContent = errors.length === 0
+        ? "Prescription passed all validation checks."
+        : `${errors.length} validation error(s) found. Please correct the highlighted values.`;
+
+      renderResults(checks);
+    }
+
+    function renderResults(checks) {
+      results.innerHTML = "";
+
+      const visible = errorsOnly.checked
+        ? checks.filter(item => !item.valid)
+        : checks;
+
+      if (visible.length === 0) {
+        results.textContent = "No errors to display.";
+        return;
+      }
+
+      visible.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "result" + (item.valid ? "" : " error");
+
+        const title = document.createElement("strong");
+        title.textContent =
+          `${item.valid ? "✓" : "✗"} ${item.label}`;
+
+        const message = document.createElement("div");
+        message.className = "message";
+        message.textContent = item.message;
+
+        card.append(title, message);
+        results.appendChild(card);
+      });
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      validatePrescription();
+    });
+
+    errorsOnly.addEventListener("change", validatePrescription);
+
+    document.getElementById("badExample").addEventListener("click", () => {
+      document.getElementById("rightSph").value = "-25.00";
+      document.getElementById("rightCyl").value = "-8.00";
+      document.getElementById("rightAxis").value = "200";
+
+      document.getElementById("leftSph").value = "1.13";
+      document.getElementById("leftCyl").value = "-1.00";
+      document.getElementById("leftAxis").value = "";
+
+      validatePrescription();
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      form.reset();
+      summary.className = "";
+      summary.textContent =
+        "Enter values and validate the prescription.";
+      results.innerHTML = "";
+    });
+  </script>
+</body>
+</html>
